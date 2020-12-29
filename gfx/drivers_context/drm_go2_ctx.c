@@ -118,8 +118,8 @@ static void *gfx_ctx_go2_drm_init(void *video_driver)
    if (!drm)
       return NULL;
 
-   drm->native_width  = go2_display_height_get(drm->display); // on go2, width and height are reverted
-   drm->native_height = go2_display_width_get(drm->display); // on go2, width and height are reverted
+   drm->native_width  = 480;
+   drm->native_height = 320;
 
    drm->display       = go2_display_create();
    drm->presenter     = go2_presenter_create(drm->display,
