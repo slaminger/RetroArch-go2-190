@@ -252,8 +252,8 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
 
    frontend_driver_install_signal_handler();
 
-   drm->fb_width    = 480;
-   drm->fb_height   = 320;
+   drm->fb_width    = 854;
+   drm->fb_height   = 480;
 
    if (!drm->context)
    {
@@ -267,7 +267,7 @@ static bool gfx_ctx_drm_set_video_mode(void *data,
       attr.depth_bits = 0;
       attr.stencil_bits = 0;
 
-      drm->context = go2_context_create(drm->display, 480, 320, &attr);
+      drm->context = go2_context_create(drm->display, 854, 480, &attr);
    }
 
    go2_context_make_current(drm->context);
@@ -329,8 +329,8 @@ static void gfx_ctx_drm_swap_buffers(void *data, void *data2)
          go2_surface_t* surface = go2_context_surface_lock(drm->context);
          go2_presenter_post(drm->presenter,
                      surface,
-                     0, 0, 480, 320,
-                     0, 0, 320, 480,
+                     0, 0, 854, 480,
+                     0, 0, 480, 854,
                      GO2_ROTATION_DEGREES_270);
          go2_context_surface_unlock(drm->context, surface);
 #endif
