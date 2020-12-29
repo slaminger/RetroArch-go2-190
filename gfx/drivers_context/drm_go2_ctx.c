@@ -118,8 +118,8 @@ static void *gfx_ctx_go2_drm_init(void *video_driver)
    if (!drm)
       return NULL;
 
-   drm->native_width  = 854;
-   drm->native_height = 480;
+   drm->native_width  = go2_display_height_get(drm->display); // on go2, width and height are reverted
+   drm->native_height = go2_display_width_get(drm->display); // on go2, width and height are reverted
 
    drm->display       = go2_display_create();
    drm->presenter     = go2_presenter_create(drm->display,
@@ -311,8 +311,8 @@ static void gfx_ctx_go2_drm_swap_buffers(void *data)
    if (out_w != src_w || out_h != src_h)
    {
        out_w = out_h * video_driver_get_aspect_ratio();
-       out_w = (out_w > 480) ? 480 : out_w;
-       out_x = (480 - out_w) / 2;
+       out_w = (out_w > drm->native_width) ? drm->native_width : out_w;
+       out_x = (drm->native_width - out_w) / 2;
        if (out_x < 0)
            out_x = 0;
     }
