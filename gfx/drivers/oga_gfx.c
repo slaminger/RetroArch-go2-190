@@ -45,9 +45,6 @@
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define NATIVE_WIDTH 480
-#define NATIVE_HEIGHT 320
-#define NATIVE_ASPECT_RATIO 1.5
 
 #define NUM_PAGES 3
 
@@ -83,6 +80,8 @@ typedef struct oga_video
    int fd;
    uint32_t connector_id;
    drmModeModeInfo mode;
+   float display_ar;
+   
 #if 0
    uint32_t width;
    uint32_t height;
@@ -382,13 +381,15 @@ static void *oga_gfx_init(const video_info_t *video,
       RARCH_ERR("Error initializing drm\n");
       return NULL;
    }
+   
+   vid->display_ar = (float)vid->mode.vdisplay / vid->mode.hdisplay;
 
    RARCH_LOG("oga_gfx_init video %dx%d rgb32 %d smooth %d ctx_scaling %d"
          " input_scale %u force_aspect %d fullscreen %d threaded %d\n",
          video->width, video->height, video->rgb32, video->smooth, video->ctx_scaling,
          video->input_scale, video->force_aspect, video->fullscreen, video->is_threaded);
 
-   vid->menu_surface = oga_create_surface(vid->fd, NATIVE_WIDTH, NATIVE_HEIGHT, RK_FORMAT_BGRA_8888);
+   vid->menu_surface = oga_create_surface(vid->fd, vid->mode.vdisplay, vid->mode.hdisplay, RK_FORMAT_BGRA_8888);
    vid->threaded = video->is_threaded;
    vid->bpp = video->rgb32 ? 4 : 2;
 
@@ -404,7 +405,7 @@ static void *oga_gfx_init(const video_info_t *video,
    vid->rotation = 0;
 
    vid->frame_surface = oga_create_surface(vid->fd, NATIVE_WIDTH, NATIVE_HEIGHT, vid->bpp == 4 ? RK_FORMAT_BGRA_8888 : RK_FORMAT_RGB_565);
-   vid->msg_surface   = oga_create_surface(vid->fd, NATIVE_WIDTH, NATIVE_HEIGHT, RK_FORMAT_BGRA_8888);
+   vid->msg_surface   = oga_create_surface(vid->fd, vid->mode.vdisplay, vid->mode.hdisplay, RK_FORMAT_BGRA_8888);
    vid->last_msg[0]   = 0;
 
    /* bitmap only for now */
@@ -416,7 +417,7 @@ static void *oga_gfx_init(const video_info_t *video,
 
    for (i = 0; i < NUM_PAGES; ++i)
    {
-      oga_surface_t* surface = oga_create_surface(vid->fd, NATIVE_HEIGHT, NATIVE_WIDTH, RK_FORMAT_BGRA_8888);
+      oga_surface_t* surface = oga_create_surface(vid->fd, vid->mode.hdisplay, vid->mode.vdisplay, RK_FORMAT_BGRA_8888);
       vid->pages[i] = oga_create_framebuf(surface);
       if (!vid->pages[i])
          return NULL;
@@ -464,6 +465,7 @@ static bool render_msg(oga_video_t* vid, const char* msg)
    int dest_x       = 0;
    int dest_y       = 0;
    int dest_stride;
+   int display_width = vid->mode.vdisplay;
 
    if (strcmp(msg, vid->last_msg) == 0)
       return true;
@@ -489,7 +491,7 @@ static bool render_msg(oga_video_t* vid, const char* msg)
       if (vid->msg_height == 0)
          vid->msg_height = g->height;
 
-      if (dest_x >= NATIVE_WIDTH)
+      if (dest_x >= display_width)
       {
          dest_x = 0;
          dest_y += g->height;
@@ -544,21 +546,21 @@ void oga_blit(oga_surface_t* src, int sx, int sy, int sw, int sh,
    c_RkRgaBlit(&s, &d, NULL);
 }
 
-void oga_calc_bounds(oga_rect_t* r, int width, int height, float aspect)
+void oga_calc_bounds(oga_rect_t* r, int dw, int dh, int sw, int sh, float aspect, float dar)
 {
    if (NATIVE_ASPECT_RATIO >= aspect)
    {
-      r->h = NATIVE_HEIGHT;
-      r->w = MIN(NATIVE_WIDTH, (NATIVE_HEIGHT * aspect + 0.5));
-      r->x = (NATIVE_WIDTH - r->w) / 2 + 0.5;
+      r->h = dh;
+      r->w = MIN(dw, (dh * aspect + 0.5));
+      r->x = (dw - r->w) / 2 + 0.5;
       r->y = 0;
    }
    else
    {
-      r->w = NATIVE_WIDTH;
-      r->h = MIN(NATIVE_HEIGHT, (NATIVE_WIDTH / aspect + 0.5));
+   r->w = dw;
+      r->h = MIN(dh, (dw / aspect + 0.5));
       r->x = 0;
-      r->y = (NATIVE_HEIGHT - r->h) / 2 + 0.5;
+      r->y = (dh - r->h) / 2 + 0.5;
    }
 }
 
